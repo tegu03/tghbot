@@ -2,57 +2,81 @@
 
 def score_token(token):
     """
-    Menilai token berdasarkan data: MC, LP, age (detik), dan rasio MC/LP.
-    Return tuple: (total_score, alasan_list)
+    Menilai token berdasarkan kriteria:
+    - MC $20K–$50K
+    - LP minimal $25K (ideal $30K+)
+    - Volume 1 jam > $10K
+    - Rasio MC/LP ideal 2:1 (maksimal 3:1)
+    - Renounced: ada kata 'Renounced' atau 🔒
+    - Whale Wallet >100 SOL
+    - Age: ideal 30 detik – 5 menit
+    Return: (score, alasan_list)
     """
-
     score = 0
     reasons = []
 
-    # Saring jika datanya tidak lengkap
-    if token is None or any(key not in token for key in ["mc", "lp", "age"]):
-        reasons.append("❌ Data tidak lengkap")
-        return (score, reasons)
+    if token is None:
+        return (score, ["❌ Token tidak valid"])
 
-    mc = token["mc"]
-    lp = token["lp"]
-    age = token["age"]
-
-    # Skor MC
-    if 15_000 <= mc <= 30_000:
+    # Marketcap
+    mc = token.get("mc", 0)
+    if 20_000 <= mc <= 50_000:
         score += 1
-        reasons.append("✅ MC ideal ($15K–$30K)")
+        reasons.append(f"✅ MC ideal (${mc:,})")
     else:
-        reasons.append("❌ MC di luar batas")
+        reasons.append(f"❌ MC di luar range (${mc:,})")
 
-    # Skor LP
-    if lp >= 1_000:
+    # LP
+    lp = token.get("lp", 0)
+    if lp >= 30_000:
         score += 1
-        reasons.append("✅ LP aman (≥ $1K)")
+        reasons.append(f"✅ LP sangat aman (${lp:,})")
+    elif lp >= 25_000:
+        score += 0.5
+        reasons.append(f"🟡 LP cukup (${lp:,})")
     else:
-        reasons.append("❌ LP terlalu kecil")
+        reasons.append(f"❌ LP terlalu rendah (${lp:,})")
 
-    # Skor umur token
-    if 30 <= age <= 300:
+    # Volume 1 jam terakhir
+    vol = token.get("volume_1h", 0)
+    if vol >= 10_000:
         score += 1
-        reasons.append("✅ Umur token ideal (30s–5m)")
+        reasons.append(f"✅ Volume tinggi (${vol:,})")
     else:
-        reasons.append("❌ Umur terlalu baru/lama")
+        reasons.append(f"❌ Volume rendah (${vol:,})")
 
     # Rasio MC/LP
-    try:
-        ratio = mc / lp if lp > 0 else 0
-        if 10 <= ratio <= 30:
+    if lp > 0:
+        ratio = mc / lp
+        if 1.5 <= ratio <= 3:
             score += 1
-            reasons.append(f"✅ Rasio MC/LP sehat ({ratio:.1f})")
+            reasons.append(f"✅ Rasio MC/LP sehat ({ratio:.2f})")
         else:
-            reasons.append(f"❌ Rasio MC/LP tidak sehat ({ratio:.1f})")
-    except:
-        reasons.append("❌ Gagal hitung rasio MC/LP")
+            reasons.append(f"❌ Rasio tidak ideal ({ratio:.2f})")
+    else:
+        reasons.append("❌ LP 0, tidak bisa hitung rasio")
 
-    # Bonus: jika symbol/token name pendek (biasanya lebih legit)
-    if len(token.get("symbol", "")) <= 5:
+    # Renounced (ikon 🔒 atau teks)
+    renounced = token.get("renounced", "").lower()
+    if "renounced" in renounced or "🔒" in renounced:
         score += 1
-        reasons.append("✅ Symbol pendek")
+        reasons.append("✅ Renounced contract")
+    else:
+        reasons.append("❌ Belum renounced")
+
+    # Whale wallet
+    if token.get("has_whale", False):
+        score += 1
+        reasons.append("✅ Ada wallet >100 SOL")
+    else:
+        reasons.append("❌ Tidak ada whale wallet")
+
+    # Age (umur token dalam detik)
+    age = token.get("age", 0)
+    if 30 <= age <= 300:
+        score += 1
+        reasons.append(f"✅ Umur token ideal ({age} detik)")
+    else:
+        reasons.append(f"❌ Umur token kurang ideal ({age} detik)")
 
     return (score, reasons)

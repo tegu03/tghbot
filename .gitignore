@@ -1,0 +1,13 @@
+# .gitignore
+
+# Jangan upload session dan config rahasia
+moca.session
+config.py
+
+# File portofolio dan winrate juga bisa disembunyikan (opsional)
+portfolio.json
+winrate.json
+
+# Bytecode dan cache
+__pycache__/
+*.pyc

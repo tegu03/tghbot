@@ -18,29 +18,43 @@ async def handle_new_message(event):
     sender_username = getattr(event.chat, 'username', None)
     chat_id = event.chat_id
 
-    # Debug log
-    print(f"[LOG] Pesan dari: {sender_username} | Chat ID: {chat_id}")
+    print(f"[LOG] 🔔 Pesan masuk dari: {sender_username or chat_id}")
 
-    # Izinkan hanya jika dari channel yang diizinkan atau grup pribadi (untuk testing)
-    if sender_username:
-        if sender_username.lower() not in [c.lower() for c in CHANNELS]:
-            return
-    elif chat_id != GROUP_ID:
+    # Izinkan jika dari channel whitelist ATAU grup pribadi
+    allowed = False
+    if sender_username and sender_username.lower() in [c.lower() for c in CHANNELS]:
+        allowed = True
+    elif chat_id == GROUP_ID:
+        allowed = True
+
+    if not allowed:
+        print("[SKIP] 🚫 Bukan dari channel/grup yang diizinkan.")
         return
 
     text = event.raw_text
+    print("[DEBUG] ✉️ Teks pesan:")
+    print(text)
+
     data = extract_token_info(text)
+    print(f"[DEBUG] 🔍 Parsed data: {data}")
+
     if not data:
+        print("[SKIP] ❌ Parsing gagal.")
         return
 
     score, reason = score_token(data)
+    print(f"[DEBUG] 🧠 Skor: {score} | Alasan: {reason}")
+
     if score < 3:
+        print(f"[SKIP] ⛔ Skor terlalu rendah: {score}")
         return
 
     if is_already_bought(data['token_name']):
+        print(f"[SKIP] 🔁 Token {data['token_name']} sudah dibeli.")
         return
 
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
+        print("[SKIP] 📦 Posisi maksimum tercapai.")
         return
 
     # Simulasi beli token

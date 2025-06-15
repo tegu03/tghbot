@@ -3,7 +3,7 @@
 import asyncio
 from telethon import TelegramClient, events
 from config import API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID
-from parser import extract_token_data
+from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions
 from seller import update_position_status, get_winrate
@@ -15,11 +15,13 @@ client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
 set_client(client)
 
 async def handle_new_message(event):
+    if not event.chat or not hasattr(event.chat, 'username'):
+        return
     if event.chat.username not in CHANNELS:
         return
 
     text = event.raw_text
-    data = extract_token_data(text)
+    data = extract_token_info(text)  # ✅ Perbaikan di sini
     if not data:
         return
 
@@ -33,17 +35,18 @@ async def handle_new_message(event):
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
         return
 
-    # Simulasi beli token
-    buy_price = data['mc'] / 1000  # Simulasi harga beli
+    # Simulasi harga beli berdasarkan marketcap
+    buy_price = data['mc'] / 1000
+
     add_to_portfolio(
-        data['token_name'],
-        data['mc'],
-        data['lp'],
-        data['volume'],
-        data['age'],
-        data['wallet'],
-        score,
-        buy_price
+        token_name=data['token_name'],
+        mc=data['mc'],
+        lp=data['lp'],
+        volume=data['volume'],
+        age=data['age'],
+        wallet=data['wallet'],
+        score=score,
+        buy_price=buy_price
     )
 
     await send_message(
@@ -58,7 +61,8 @@ async def handle_new_message(event):
 async def monitor_positions():
     while True:
         for entry in get_open_positions():
-            now_price = entry['mc'] / 1000 * 1.8  # Simulasi naik turun harga
+            now_price = entry['mc'] / 1000 * 1.8  # Simulasi naik/turun harga
+
             if now_price >= entry['buy_price'] * 2:
                 update_position_status(entry['token_name'], 'TP', now_price)
                 await send_message(f"🎯 TP: {entry['token_name']} ✅")
@@ -71,7 +75,11 @@ async def monitor_positions():
 async def monitor_status(event):
     open_tokens = get_open_positions()
     win, total, wr = get_winrate()
-    msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr}%"
+    msg = (
+        f"📊 Monitoring Bot\n"
+        f"📍 Open Positions: {len(open_tokens)} token\n"
+        f"🏆 Winrate: {win}/{total} = {wr}%"
+    )
     await event.reply(msg)
 
 @client.on(events.NewMessage)
@@ -80,7 +88,7 @@ async def handler(event):
 
 async def main():
     await client.start()
-    print("Bot aktif...")
+    print("✅ Bot aktif dan monitoring berjalan...")
     asyncio.create_task(monitor_positions())
     await client.run_until_disconnected()
 

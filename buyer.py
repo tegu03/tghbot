@@ -1,41 +1,59 @@
-# buyer.py
-
 import json
-import time
 import os
+from datetime import datetime
 
-PORTFOLIO_FILE = "portfolio.json"
+PORTFOLIO_FILE = 'portfolio.json'
 
-def load_portfolio():
-    if not os.path.exists(PORTFOLIO_FILE):
-        return []
-    with open(PORTFOLIO_FILE, "r") as f:
-        return json.load(f)
+# Struktur data sementara coin yang disimpan
+portfolio = []
+if os.path.exists(PORTFOLIO_FILE):
+    with open(PORTFOLIO_FILE, 'r') as f:
+        try:
+            portfolio = json.load(f)
+        except:
+            portfolio = []
 
-def save_portfolio(portfolio):
-    with open(PORTFOLIO_FILE, "w") as f:
+def save_portfolio():
+    with open(PORTFOLIO_FILE, 'w') as f:
         json.dump(portfolio, f, indent=2)
 
-def token_already_bought(address):
-    portfolio = load_portfolio()
-    return any(entry["address"] == address for entry in portfolio)
+def is_already_bought(token_name):
+    return any(entry['token_name'] == token_name and entry['status'] == 'open' for entry in portfolio)
 
-def buy_token(token):
-    """
-    Simulasi beli token dan simpan ke portfolio
-    """
-    if token_already_bought(token["address"]):
-        return False, "❌ Token sudah dibeli"
-
-    portfolio = load_portfolio()
+def add_to_portfolio(token_name, mc, lp, volume, age, wallet, score, buy_price):
     entry = {
-        "name": token["name"],
-        "address": token["address"],
-        "buy_time": int(time.time()),
-        "buy_price": token.get("price", 0),
-        "mc": token.get("mc", 0),
-        "lp": token.get("lp", 0)
+        'token_name': token_name,
+        'mc': mc,
+        'lp': lp,
+        'volume': volume,
+        'age': age,
+        'wallet': wallet,
+        'score': score,
+        'buy_price': buy_price,
+        'sell_price': None,
+        'result': None,
+        'buy_time': datetime.utcnow().isoformat(),
+        'status': 'open'
     }
     portfolio.append(entry)
-    save_portfolio(portfolio)
-    return True, f"✅ Membeli {token['name']} di MC ${token['mc']:,}"
+    save_portfolio()
+
+def get_open_positions():
+    return [entry for entry in portfolio if entry['status'] == 'open']
+
+def update_position_status(token_name, status, sell_price=None):
+    for entry in portfolio:
+        if entry['token_name'] == token_name and entry['status'] == 'open':
+            entry['status'] = status
+            entry['sell_price'] = sell_price
+            if sell_price is not None:
+                entry['result'] = 'win' if sell_price >= entry['buy_price'] * 2 else 'loss'
+            break
+    save_portfolio()
+
+def get_winrate():
+    finished = [entry for entry in portfolio if entry['status'] != 'open']
+    if not finished:
+        return 0.0, 0, 0
+    wins = [e for e in finished if e['result'] == 'win']
+    return round(len(wins) / len(finished) * 100, 2), len(wins), len(finished)

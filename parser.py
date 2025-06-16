@@ -1,62 +1,46 @@
-# parser.py (diperbarui untuk mendukung parsing contract address + whale + volume + sniper)
+# parser.py
 
 import re
 
 def extract_token_info(text):
     try:
-        # Token name
-        name_match = re.search(r'\$([A-Z0-9]+)', text)
-        token_name = name_match.group(1) if name_match else 'UNKNOWN'
+        token_name_match = re.search(r"Token: (.+)", text)
+        if not token_name_match:
+            return None
 
-        # Contact / contract link
-        contract_match = re.search(r'(https://pump\.fun/\w+/[A-Za-z0-9]+)', text)
-        contact = contract_match.group(1) if contract_match else 'N/A'
+        token_name = token_name_match.group(1).strip()
 
-        # Age in minutes/seconds
-        age_match = re.search(r'Age:\s*(\d+)m', text)
-        age_min = int(age_match.group(1)) if age_match else 0
-        age_sec_match = re.search(r'Age:.*?(\d+)s', text)
-        age_sec = int(age_sec_match.group(1)) if age_sec_match else 0
-        age_total_seconds = age_min * 60 + age_sec
+        age_match = re.search(r"Age: (\d+)s", text)
+        mc_match = re.search(r"MC: \$(\d+[,.]?\d*)", text)
+        lp_match = re.search(r"LP: \$(\d+[,.]?\d*)", text)
+        vol_match = re.search(r"Vol(?:ume)?: \$(\d+[,.]?\d*)", text)
+        renounced_match = re.search(r"Renounced[:]? (.+)", text, re.IGNORECASE)
+        sniper_match = re.search(r"Snipers: (\d+) \((\d+)%\)", text)
+        whale_match = re.search(r"Whale: (\d+[.]?\d*) SOL", text)
+        ca_match = re.search(r"https://pump.fun/([^\s]+)", text)
 
-        # Whale Wallet
-        whale_match = re.search(r'Wallet:\s*(\d+(\.\d+)?)\s*SOL', text)
-        whale = float(whale_match.group(1)) if whale_match else 0
-
-        # Marketcap
-        mc_match = re.search(r'MC:\s*\$([\d,.]+)', text)
-        marketcap = int(mc_match.group(1).replace(',', '')) if mc_match else 0
-
-        # Liquidity
-        liq_match = re.search(r'Liq:\s*\$([\d,.]+)', text)
-        liquidity = int(liq_match.group(1).replace(',', '')) if liq_match else 0
-
-        # Volume
-        vol_match = re.search(r'Vol:\s*\$([\d,.]+)', text)
-        volume = int(vol_match.group(1).replace(',', '')) if vol_match else 0
-
-        # Sniper
-        sniper_count = len(re.findall(r'🍤', text))
-        sniper_percent_match = re.search(r'Snipers:.*?(\d+(\.\d+)?)%', text)
-        sniper_percent = float(sniper_percent_match.group(1)) if sniper_percent_match else 0
-
-        # Renounced / locked
-        security_match = re.search(r'Security:\s*(.*?)\n', text)
-        renounced = security_match.group(1) if security_match else ''
+        age_seconds = int(age_match.group(1)) if age_match else 0
+        mc = float(mc_match.group(1).replace(',', '')) if mc_match else 0
+        lp = float(lp_match.group(1).replace(',', '')) if lp_match else 0
+        vol = float(vol_match.group(1).replace(',', '')) if vol_match else 0
+        renounced = renounced_match.group(1).strip() if renounced_match else ''
+        sniper_count = int(sniper_match.group(1)) if sniper_match else 0
+        sniper_percent = int(sniper_match.group(2)) if sniper_match else 0
+        whale_wallet_sol = float(whale_match.group(1)) if whale_match else 0
+        ca = ca_match.group(1) if ca_match else ''
 
         return {
-            'token_name': token_name,
-            'contact': contact,
-            'age': age_total_seconds,
-            'wallet': whale,
-            'mc': marketcap,
-            'lp': liquidity,
-            'volume': volume,
-            'renounced': renounced,
-            'sniper_count': sniper_count,
-            'sniper_percent': sniper_percent
+            "token_name": token_name,
+            "age_seconds": age_seconds,
+            "marketcap": mc,
+            "liquidity": lp,
+            "volume": vol,
+            "renounced": renounced,
+            "sniper_count": sniper_count,
+            "sniper_percent": sniper_percent,
+            "whale_wallet_sol": whale_wallet_sol,
+            "ca": ca,
         }
-
     except Exception as e:
-        print(f"[ERROR] Parsing gagal: {e}")
+        print(f"[ERROR] Failed to parse token info: {e}")
         return None

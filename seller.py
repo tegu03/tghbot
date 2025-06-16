@@ -1,51 +1,54 @@
-# seller.py (updated for moonbag logic, compatible with main.py)
+# seller.py (final updated with moonbag, TP/SL handling)
 
-from buyer import portfolio, save_json
 from datetime import datetime
+from utils import load_json, save_json
 
-TP_MULTIPLIER = 2.0
-SL_MULTIPLIER = 0.75
-MOONBAG_PERCENT = 20  # 20% token held after TP
+PORTFOLIO_FILE = 'data/portfolio.json'
 
+portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
 
-def process_position_updates(get_price_func):
-    messages = []
-    for entry in portfolio:
-        if entry['status'] != 'OPEN':
-            continue
+def get_open_positions():
+    return [t for t in portfolio if t['status'] == 'OPEN']
 
-        token_name = entry['token_name']
-        current_price = get_price_func(token_name)
-        if current_price is None:
-            continue
-
-        entry['current_price'] = current_price
-
-        if current_price >= entry['buy_price'] * TP_MULTIPLIER:
-            # Hit Take Profit
-            moonbag_value = current_price * MOONBAG_PERCENT / 100
-            profit_value = current_price * (100 - MOONBAG_PERCENT) / 100
-            entry['status'] = 'TP'
-            entry['sell_price'] = profit_value
-            entry['sell_time'] = datetime.now().isoformat()
-            entry['result'] = 'WIN'
-            messages.append(f"🎯 TP: {token_name} ✅ (80% sold at ${profit_value:.4f}, 20% hold)")
-
-        elif current_price <= entry['buy_price'] * SL_MULTIPLIER:
-            # Hit Stop Loss
-            entry['status'] = 'SL'
-            entry['sell_price'] = current_price
-            entry['sell_time'] = datetime.now().isoformat()
-            entry['result'] = 'LOSS'
-            messages.append(f"🛑 SL: {token_name} ❌ (sold at ${current_price:.4f})")
-
-    save_json('data/portfolio.json', portfolio)
-    return messages
-
+def get_closed_positions():
+    return [t for t in portfolio if t['status'] != 'OPEN']
 
 def get_winrate():
-    closed = [t for t in portfolio if t['status'] in ('TP', 'SL')]
+    closed = get_closed_positions()
     win = sum(1 for t in closed if t['result'] == 'WIN')
     total = len(closed)
     wr = round((win / total) * 100, 2) if total > 0 else 0.0
     return win, total, wr
+
+def update_position_status(token_name, status, sell_price):
+    for t in portfolio:
+        if t['token_name'] == token_name and t['status'] == 'OPEN':
+            t['status'] = status
+            t['sell_price'] = sell_price
+            t['sell_time'] = datetime.now().isoformat()
+            t['result'] = 'WIN' if status == 'TP' else 'LOSS'
+            save_json(PORTFOLIO_FILE, portfolio)
+            break
+
+def reset_portfolio():
+    global portfolio
+    portfolio = []
+    save_json(PORTFOLIO_FILE, portfolio)
+
+def process_position_updates(get_price_func):
+    closed_tokens = []
+    for entry in get_open_positions():
+        now_price = get_price_func(entry['token_name'])
+        if not now_price:
+            continue
+        buy = entry['buy_price']
+
+        if now_price >= buy * 2:
+            update_position_status(entry['token_name'], 'TP', now_price)
+            closed_tokens.append((entry['token_name'], 'TP', now_price))
+
+        elif now_price <= buy * 0.75:
+            update_position_status(entry['token_name'], 'SL', now_price)
+            closed_tokens.append((entry['token_name'], 'SL', now_price))
+
+    return closed_tokens

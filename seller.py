@@ -1,54 +1,50 @@
-# seller.py (final updated with moonbag, TP/SL handling)
+# seller.py (versi dengan moonbag dan logging detail jual)
 
-from datetime import datetime
+import time
 from utils import load_json, save_json
 
-PORTFOLIO_FILE = 'data/portfolio.json'
+TOKEN_FILE = 'portfolio.json'
+HISTORY_FILE = 'history.json'
 
-portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
+# Status: OPEN, TP, SL, MOONBAG
 
 def get_open_positions():
-    return [t for t in portfolio if t['status'] == 'OPEN']
+    return [x for x in load_json(TOKEN_FILE) if x['status'] == 'OPEN']
 
-def get_closed_positions():
-    return [t for t in portfolio if t['status'] != 'OPEN']
+def get_history():
+    return load_json(HISTORY_FILE)
 
-def get_winrate():
-    closed = get_closed_positions()
-    win = sum(1 for t in closed if t['result'] == 'WIN')
-    total = len(closed)
-    wr = round((win / total) * 100, 2) if total > 0 else 0.0
-    return win, total, wr
+def save_portfolio(data):
+    save_json(TOKEN_FILE, data)
+
+def save_history(entry):
+    history = load_json(HISTORY_FILE)
+    history.append(entry)
+    save_json(HISTORY_FILE, history)
 
 def update_position_status(token_name, status, sell_price):
-    for t in portfolio:
-        if t['token_name'] == token_name and t['status'] == 'OPEN':
-            t['status'] = status
-            t['sell_price'] = sell_price
-            t['sell_time'] = datetime.now().isoformat()
-            t['result'] = 'WIN' if status == 'TP' else 'LOSS'
-            save_json(PORTFOLIO_FILE, portfolio)
+    portfolio = load_json(TOKEN_FILE)
+    for entry in portfolio:
+        if entry['token_name'] == token_name and entry['status'] == 'OPEN':
+            entry['status'] = status
+            entry['sell_price'] = round(sell_price, 4)
+            entry['sell_time'] = int(time.time())
+            entry['profit_pct'] = round(((sell_price - entry['buy_price']) / entry['buy_price']) * 100, 2)
+
+            # Jika TP dan moonbag diaktifkan
+            if status == 'TP':
+                entry['moonbag'] = {
+                    'amount_percent': 20,
+                    'hold_start_time': int(time.time())
+                }
+
+            save_history(entry)
             break
+    save_portfolio(portfolio)
 
-def reset_portfolio():
-    global portfolio
-    portfolio = []
-    save_json(PORTFOLIO_FILE, portfolio)
-
-def process_position_updates(get_price_func):
-    closed_tokens = []
-    for entry in get_open_positions():
-        now_price = get_price_func(entry['token_name'])
-        if not now_price:
-            continue
-        buy = entry['buy_price']
-
-        if now_price >= buy * 2:
-            update_position_status(entry['token_name'], 'TP', now_price)
-            closed_tokens.append((entry['token_name'], 'TP', now_price))
-
-        elif now_price <= buy * 0.75:
-            update_position_status(entry['token_name'], 'SL', now_price)
-            closed_tokens.append((entry['token_name'], 'SL', now_price))
-
-    return closed_tokens
+def get_winrate():
+    history = get_history()
+    total = len([x for x in history if x['status'] in ['TP', 'SL']])
+    win = len([x for x in history if x['status'] == 'TP'])
+    wr = round((win / total) * 100, 2) if total > 0 else 0
+    return win, total, wr

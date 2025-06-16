@@ -1,42 +1,54 @@
-import asyncio
-import time
-from seller import update_position_status, get_winrate
-from utils import send_message
-from pumpapi.client import get_token_data_by_name
+# buyer.py
 
-CHECK_INTERVAL = 60  # Detik
-TP_MULTIPLIER = 2.0
-SL_MULTIPLIER = 0.75
+portfolio = []
 
-async def monitor_positions():
-    while True:
-        positions = get_open_positions()
-        for token in positions:
-            token_name = token['token_name']
-            try:
-                latest_data = get_token_data_by_name(token_name)
-                if not latest_data:
-                    continue
-                current_mc = latest_data.get('mc')
-                if not current_mc:
-                    continue
+def is_already_bought(token_name):
+    """Cek apakah token sudah dibeli dan statusnya masih terbuka (OPEN)"""
+    return any(p['token'] == token_name and p['status'] == 'OPEN' for p in portfolio)
 
-                buy_price = token['buy_price']
-                now_price = current_mc / 1000  # Asumsikan harga berdasarkan marketcap
+def add_to_portfolio(token, mc, lp, volume, age, wallet, score, buy_price):
+    """Tambah token ke dalam portofolio simulasi"""
+    portfolio.append({
+        'token': token,
+        'mc': mc,
+        'lp': lp,
+        'volume': volume,
+        'age': age,
+        'wallet': wallet,
+        'score': score,
+        'buy_price': buy_price,
+        'status': 'OPEN'
+    })
 
-                if now_price >= buy_price * TP_MULTIPLIER:
-                    update_position_status(token_name, 'TP', now_price)
-                    await send_message(f"🎯 TP: {token_name} ✅ Harga: {now_price:.4f} SOL")
-                elif now_price <= buy_price * SL_MULTIPLIER:
-                    update_position_status(token_name, 'SL', now_price)
-                    await send_message(f"🛑 SL: {token_name} ❌ Harga: {now_price:.4f} SOL")
+def get_open_positions():
+    """Ambil semua posisi token yang masih OPEN"""
+    return [p for p in portfolio if p['status'] == 'OPEN']
 
-            except Exception as e:
-                print(f"[ERROR] Monitor gagal untuk {token_name}: {e}")
-        await asyncio.sleep(CHECK_INTERVAL)
+def update_token_status(token_name, status, price=None):
+    """Update status token (TP/SL/CLOSE), bisa juga menyimpan harga jual"""
+    for p in portfolio:
+        if p['token'] == token_name and p['status'] == 'OPEN':
+            p['status'] = status
+            if price:
+                p['sell_price'] = price
+            break
 
-async def monitor_status(event):
-    open_tokens = get_open_positions()
-    win, total, wr = get_winrate()
-    msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr}%"
-    await event.reply(msg)
+def reset_portfolio():
+    """Reset seluruh portofolio (untuk percobaan ulang)"""
+    global portfolio
+    portfolio = []
+
+def get_winrate():
+    """Hitung winrate berdasarkan hasil TP dan SL"""
+    total = 0
+    win = 0
+    for p in portfolio:
+        if p['status'] == 'TP':
+            win += 1
+            total += 1
+        elif p['status'] == 'SL':
+            total += 1
+    if total == 0:
+        return 0, 0, 0.0
+    wr = (win / total) * 100
+    return win, total, round(wr, 2)

@@ -2,7 +2,11 @@
 
 import asyncio
 from telethon import TelegramClient, events
-from config import API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID, MAX_OPEN_POSITIONS, MIN_SCORE_TO_BUY, MAX_MARKETCAP, TP_MULTIPLIER, SL_MULTIPLIER, MOONBAG_RATIO
+from config import (
+    API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID,
+    MAX_OPEN_POSITIONS, MIN_SCORE_TO_BUY, MAX_MARKETCAP,
+    TP_MULTIPLIER, SL_MULTIPLIER, MOONBAG_RATIO
+)
 from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
@@ -32,8 +36,8 @@ async def handle_new_message(event):
         print(f"[SKIP] ⛔ Skor {score} kurang dari {MIN_SCORE_TO_BUY}")
         return
 
-    if data['mc'] > MAX_MARKETCAP:
-        print(f"[SKIP] 💸 Marketcap terlalu besar: ${data['mc']}")
+    if data['marketcap'] > MAX_MARKETCAP:
+        print(f"[SKIP] 💸 Marketcap terlalu besar: ${data['marketcap']}")
         return
 
     if is_already_bought(data['token_name']):
@@ -45,27 +49,27 @@ async def handle_new_message(event):
         return
 
     # Simulasi harga beli awal
-    buy_price = data['mc'] / 1000
+    buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
         token_name=data['token_name'],
-        marketcap=data['mc'],
-        liquidity=data['lp'],
+        marketcap=data['marketcap'],
+        liquidity=data['liquidity'],
         volume=data['volume'],
         age=data['age'],
         wallet=data['wallet'],
         score=score,
         buy_price=buy_price,
-        token_address=data['address']
+        token_address=data['symbol']
     )
 
     await send_message(
         f"✅ Beli token: {data['token_name']}\n"
         f"Skor: {score}/7\n"
-        f"MC: ${data['mc']} | LP: ${data['lp']}\n"
-        f"Vol: ${data['volume']} | Usia: {data['age']} detik\n"
+        f"MC: ${data['marketcap']} | LP: ${data['liquidity']}\n"
+        f"Vol: ${data['volume']} | Usia: {data['age']}\n"
         f"Whale: {data['wallet']} SOL\n"
-        f"🔗 https://solscan.io/token/{data['address']}\n"
+        f"🔗 https://pump.fun/{data['symbol']}\n"
         + "\n".join(reasons)
     )
 
@@ -81,8 +85,8 @@ async def monitor_positions():
                 token = entry['token_name']
 
                 if now_price >= buy_price * TP_MULTIPLIER:
-                    sell_price = now_price * 0.8
-                    update_position_status(token, "TP", sell_price, moonbag=True)
+                    sell_price = now_price * (1 - MOONBAG_RATIO)
+                    update_position_status(token, "TP", sell_price)
                     await send_message(f"🎯 TP 80%: {token} @ ${sell_price:.4f} ✅\n20% disimpan sebagai moonbag.")
                 elif now_price <= buy_price * SL_MULTIPLIER:
                     update_position_status(token, "SL", now_price)

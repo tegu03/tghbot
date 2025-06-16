@@ -2,11 +2,20 @@
 
 import asyncio
 from telethon import TelegramClient, events
-from config import API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID, MAX_OPEN_POSITIONS, MIN_SCORE_TO_BUY, MAX_MARKETCAP, TP_MULTIPLIER, SL_MULTIPLIER, MOONBAG_RATIO
+from config import (
+    API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID,
+    MAX_OPEN_POSITIONS, MIN_SCORE_TO_BUY, MAX_MARKETCAP,
+    TP_MULTIPLIER, SL_MULTIPLIER, MOONBAG_RATIO
+)
 from parser import extract_token_info
 from scorer import score_token
-from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
-from seller import update_position_status, get_winrate, get_closed_positions
+from buyer import (
+    is_already_bought, add_to_portfolio,
+    get_open_positions, reset_portfolio
+)
+from seller import (
+    update_position_status, get_winrate, get_closed_positions
+)
 from pumpportal import fetch_token_price_by_address
 from utils import send_message, set_client
 
@@ -41,9 +50,10 @@ async def handle_new_message(event):
         return
 
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
-        print("[SKIP] 📆 Posisi maksimum tercapai.")
+        print("[SKIP] 📦 Posisi maksimum tercapai.")
         return
 
+    # Simulasi harga beli awal (sementara diasumsikan MC/1000)
     buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
@@ -51,7 +61,7 @@ async def handle_new_message(event):
         marketcap=data['marketcap'],
         liquidity=data['liquidity'],
         volume=data['volume'],
-        age=data['age'],
+        age=data['age_seconds'],
         wallet=data['whale_wallet_sol'],
         score=score,
         buy_price=buy_price,
@@ -61,8 +71,8 @@ async def handle_new_message(event):
     await send_message(
         f"✅ Beli token: {data['token_name']}\n"
         f"Skor: {score}/7\n"
-        f"MC: ${data['marketcap']} | LP: ${data['liquidity']}\n"
-        f"Vol: ${data['volume']} | Usia: {data['age']} detik\n"
+        f"MC: ${data['marketcap']:.0f} | LP: ${data['liquidity']:.0f}\n"
+        f"Vol: ${data['volume']:.0f} | Usia: {data['age_seconds']} detik\n"
         f"Whale: {data['whale_wallet_sol']} SOL\n"
         f"🔗 https://solscan.io/token/{data['contact_address']}\n"
         + "\n".join(reasons)
@@ -99,7 +109,7 @@ async def monitor_status(event):
     msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr:.1f}%\n\n"
 
     if open_tokens:
-        msg += "📅 Dibeli:\n"
+        msg += "📥 Dibeli:\n"
         for t in open_tokens:
             msg += f"- {t['token_name']} @ ${t['buy_price']:.4f}\n"
 
@@ -107,24 +117,4 @@ async def monitor_status(event):
         msg += "\n📤 Terjual:\n"
         for t in closed_tokens[-5:]:
             status = "TP" if t["status"] == "TP" else "SL"
-            msg += f"- {t['token_name']} {status} @ ${t['sell_price']:.4f}\n"
-
-    await event.reply(msg)
-
-@client.on(events.NewMessage(pattern='/reset'))
-async def reset_handler(event):
-    reset_portfolio()
-    await event.reply("🔄 Portfolio telah di-reset.")
-
-@client.on(events.NewMessage)
-async def handler(event):
-    await handle_new_message(event)
-
-async def main():
-    while True:
-        try:
-            await client.start()
-            print("✅ Bot aktif dan monitoring berjalan...")
-            asyncio.create_task(monitor_positions())
-            await client.run_until_disconnected()
-        except Exception as e:
+            msg += f"- {t['token_name']} {status} @ ${t

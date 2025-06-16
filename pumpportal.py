@@ -1,26 +1,39 @@
 # pumpportal.py
 
-import requests
+import aiohttp
+import asyncio
+from config import PUMPPORTAL_BASE_URL, PUMPPORTAL_API_KEY
 
-API_BASE_URL = "https://pumpportal.io/api/token"
+HEADERS = {
+    "Authorization": f"Bearer {PUMPPORTAL_API_KEY}",
+    "Accept": "application/json"
+}
 
-def get_token_price(token_name: str):
+async def fetch_token_price(token_name: str):
+    url = f"{PUMPPORTAL_BASE_URL}/v1/token/price?name={token_name}"
     try:
-        response = requests.get(f"{API_BASE_URL}?search={token_name}")
-        data = response.json()
-        
-        if not data or 'tokens' not in data or len(data['tokens']) == 0:
-            return None
-
-        token = data['tokens'][0]
-        return {
-            "price": float(token.get("price", 0)),
-            "mc": float(token.get("marketCap", 0)),
-            "liquidity": float(token.get("liquidity", 0)),
-            "volume": float(token.get("volume", 0)),
-            "token_address": token.get("address")
-        }
-
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=HEADERS, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("price_usd", 0)
+                else:
+                    print(f"[PumpPortal] ❌ Failed to fetch price for {token_name}: {response.status}")
     except Exception as e:
-        print(f"[PumpPortal ERROR] Failed to fetch token data: {e}")
-        return None
+        print(f"[PumpPortal] ⚠️ Exception during price fetch: {e}")
+    return 0
+
+
+async def fetch_token_price_by_address(address: str):
+    url = f"{PUMPPORTAL_BASE_URL}/v1/token/price?address={address}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=HEADERS, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("price_usd", 0)
+                else:
+                    print(f"[PumpPortal] ❌ Failed to fetch price for {address}: {response.status}")
+    except Exception as e:
+        print(f"[PumpPortal] ⚠️ Exception during price fetch by address: {e}")
+    return 0

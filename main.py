@@ -51,17 +51,21 @@ async def handle_new_message(event):
     # Simulasi harga beli awal
     buy_price = data['marketcap'] / 1000
 
-    add_to_portfolio(
-        token_name=data['token_name'],
-        marketcap=data['marketcap'],
-        liquidity=data['liquidity'],
-        volume=data['volume'],
-        age=data['age'],
-        wallet=data['wallet'],
-        score=score,
-        buy_price=buy_price,
-        token_address=data['symbol']
-    )
+    from datetime import datetime  # Tambahkan di bagian import
+
+add_to_portfolio(
+    token_name=data['token_name'],
+    token_address=data['symbol'],
+    symbol=data['symbol'],
+    buy_price=buy_price,
+    buy_time=datetime.now().isoformat(),
+    marketcap=data['marketcap'],
+    liquidity=data['liquidity'],
+    volume=data['volume'],
+    wallet=data['wallet'],
+    age=data['age'],
+    score=score
+)
 
     await send_message(
         f"✅ Beli token: {data['token_name']}\n"

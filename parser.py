@@ -4,43 +4,44 @@ import re
 
 def extract_token_info(text):
     try:
-        token_name_match = re.search(r"Token: (.+)", text)
-        if not token_name_match:
-            return None
+        # Cari nama token dan simbol dari baris dengan swap detail
+        name_match = re.search(r"🔥\s+(.*?)\s+Swap", text)
+        token_name = name_match.group(1).strip() if name_match else "UNKNOWN"
 
-        token_name = token_name_match.group(1).strip()
+        # Marketcap
+        mc_match = re.search(r"MC:\s*\$(.*?)\s", text)
+        marketcap = float(mc_match.group(1).replace(",", "")) if mc_match else 0
 
-        age_match = re.search(r"Age: (\d+)s", text)
-        mc_match = re.search(r"MC: \$(\d+[,.]?\d*)", text)
-        lp_match = re.search(r"LP: \$(\d+[,.]?\d*)", text)
-        vol_match = re.search(r"Vol(?:ume)?: \$(\d+[,.]?\d*)", text)
-        renounced_match = re.search(r"Renounced[:]? (.+)", text, re.IGNORECASE)
-        sniper_match = re.search(r"Snipers: (\d+) \((\d+)%\)", text)
-        whale_match = re.search(r"Whale: (\d+[.]?\d*) SOL", text)
-        ca_match = re.search(r"https://pump.fun/([^\s]+)", text)
+        # Liquidity
+        liq_match = re.search(r"Liq:\s*\$(.*?)\n", text)
+        liquidity = float(liq_match.group(1).replace(",", "")) if liq_match else 0
 
-        age_seconds = int(age_match.group(1)) if age_match else 0
-        mc = float(mc_match.group(1).replace(',', '')) if mc_match else 0
-        lp = float(lp_match.group(1).replace(',', '')) if lp_match else 0
-        vol = float(vol_match.group(1).replace(',', '')) if vol_match else 0
-        renounced = renounced_match.group(1).strip() if renounced_match else ''
-        sniper_count = int(sniper_match.group(1)) if sniper_match else 0
-        sniper_percent = int(sniper_match.group(2)) if sniper_match else 0
-        whale_wallet_sol = float(whale_match.group(1)) if whale_match else 0
-        ca = ca_match.group(1) if ca_match else ''
+        # Volume 1h
+        vol_match = re.search(r"Vol:\s*1h:\s*\$(.*?)\n", text)
+        volume_1h = float(vol_match.group(1).replace(",", "")) if vol_match else 0
+
+        # Age
+        age_match = re.search(r"Age:\s*(.*?)\s*\|", text)
+        age = age_match.group(1).strip() if age_match else "UNKNOWN"
+
+        # Whale Wallet info
+        whale_match = re.search(r"Wallet Value:\s*(.*?)\s*SOL", text)
+        whale_wallet = float(whale_match.group(1)) if whale_match else 0
+
+        # Contact Address (jika tersedia)
+        address_match = re.search(r"Wallet Address:.*?([A-Z0-9]{10,})", text)
+        contact_address = address_match.group(1) if address_match else ""
 
         return {
             "token_name": token_name,
-            "age_seconds": age_seconds,
-            "marketcap": mc,
-            "liquidity": lp,
-            "volume": vol,
-            "renounced": renounced,
-            "sniper_count": sniper_count,
-            "sniper_percent": sniper_percent,
-            "whale_wallet_sol": whale_wallet_sol,
-            "ca": ca,
+            "marketcap": marketcap,
+            "liquidity": liquidity,
+            "volume_1h": volume_1h,
+            "age": age,
+            "whale_wallet": whale_wallet,
+            "contact_address": contact_address
         }
+
     except Exception as e:
-        print(f"[ERROR] Failed to parse token info: {e}")
+        print("[Parser Error]", e)
         return None

@@ -1,7 +1,7 @@
 # seller.py
 
 from utils import load_json, save_json
-from config import PORTFOLIO_FILE
+from config import PORTFOLIO_FILE, MOONBAG_RATIO
 
 portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
 
@@ -9,8 +9,16 @@ def update_position_status(token_name, status, sell_price):
     global portfolio
     for token in portfolio:
         if token['token_name'] == token_name and token['status'] == 'OPEN':
-            token['status'] = status
-            token['sell_price'] = sell_price
+            if status == 'TP' and MOONBAG_RATIO > 0:
+                # TP with moonbag
+                token['status'] = 'HOLD'
+                token['sell_price'] = round(sell_price * (1 - MOONBAG_RATIO), 4)
+                token['moonbag_price'] = round(sell_price * MOONBAG_RATIO, 4)
+                token['moonbag_ratio'] = MOONBAG_RATIO
+            else:
+                # Regular TP or SL
+                token['status'] = status
+                token['sell_price'] = round(sell_price, 4)
             break
     save_json(PORTFOLIO_FILE, portfolio)
 

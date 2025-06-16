@@ -1,6 +1,7 @@
 # main.py
 
 import asyncio
+import os
 from telethon import TelegramClient, events
 from config import API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID
 from parser import extract_token_info
@@ -97,6 +98,18 @@ async def monitor_status(event):
     win, total, wr = get_winrate()
     msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr}%"
     await event.reply(msg)
+
+@client.on(events.NewMessage(pattern='/reset'))
+async def reset_bot(event):
+    try:
+        for file in ["portfolio.json", "winrate.json"]:
+            file_path = os.path.join(os.path.dirname(__file__), file)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        await event.reply("✅ Bot telah di-reset. Portfolio dan winrate dikosongkan.")
+        print("[INFO] Bot direset manual via /reset")
+    except Exception as e:
+        await event.reply(f"❌ Gagal mereset bot: {e}")
 
 @client.on(events.NewMessage)
 async def handler(event):

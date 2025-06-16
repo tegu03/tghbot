@@ -1,4 +1,4 @@
-# scorer.py (versi terbaru dengan kriteria baru & penyesuaian skor)
+# scorer.py
 
 def score_token(token_info):
     score = 0
@@ -14,11 +14,11 @@ def score_token(token_info):
 
     # MarketCap (< $100K)
     mc = token_info.get('marketcap', 0)
-    if mc < 100000:
+    if 0 < mc < 100_000:
         score += 1
-        reasons.append('✅ MC OK')
+        reasons.append('✅ Marketcap OK')
     else:
-        reasons.append('❌ MarketCap terlalu besar')
+        reasons.append('❌ Marketcap too high')
 
     # Liquidity (min $25K)
     lp = token_info.get('liquidity', 0)
@@ -36,27 +36,27 @@ def score_token(token_info):
     else:
         reasons.append('❌ Volume too low')
 
-    # Ratio MC/LP (ideal 2:1, maks 3:1)
+    # Ratio MC/LP (ideal 1.5–3)
     if lp > 0:
         ratio = mc / lp
         if 1.5 <= ratio <= 3:
             score += 1
             reasons.append('✅ MC/LP ratio OK')
         else:
-            reasons.append(f'❌ MC/LP ratio too high ({ratio:.2f})')
+            reasons.append(f'❌ MC/LP ratio off ({ratio:.2f})')
     else:
         reasons.append('❌ LP is 0, cannot compute ratio')
 
-    # Renounced check (boolean atau string)
+    # Renounced check
     renounced_raw = token_info.get('renounced', '')
-    renounced = str(renounced_raw).lower()
+    renounced = str(renounced_raw).lower()  # fleksibel: str/bool
     if 'renounced' in renounced or '🔒' in renounced or renounced == 'true':
         score += 1
         reasons.append('✅ Renounced')
     else:
         reasons.append('❌ Not renounced')
 
-    # Whale check > 100 SOL
+    # Whale check (> 100 SOL)
     whale_sol = token_info.get('whale_wallet_sol', 0)
     if whale_sol >= 100:
         score += 1
@@ -64,9 +64,9 @@ def score_token(token_info):
     else:
         reasons.append('❌ No strong whale')
 
-    # Cek wallet mencurigakan (dump/sniper)
+    # Cek wallet mencurigakan (sniper warning)
     if token_info.get('sniper_count', 0) >= 20 and token_info.get('sniper_percent', 0) > 20:
-        reasons.append('⚠️ Warning: High sniper presence')
+        reasons.append('⚠️ High sniper activity detected')
         score -= 1
 
     return max(score, 0), reasons

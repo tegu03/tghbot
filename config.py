@@ -26,3 +26,6 @@ MOONBAG_RATIO = float(os.getenv("MOONBAG_RATIO", 0.2))     # 20% moonbag holding
 # PumpPortal API
 PUMPPORTAL_BASE_URL = os.getenv("PUMPPORTAL_BASE_URL", "https://api.pumpportal.io")
 PUMPPORTAL_API_KEY = os.getenv("PUMPPORTAL_API_KEY")
+
+# File path
+PORTFOLIO_FILE = "portfolio.json"

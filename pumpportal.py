@@ -1,43 +1,26 @@
-import aiohttp
-import asyncio
+# pumpportal.py
 
-BASE_URL = "https://api.pump.fun/v1"  # Gantilah jika endpoint berbeda
+import requests
 
-async def get_token_price(token_name):
-    url = f"{BASE_URL}/tokens/{token_name}/price"
+API_BASE_URL = "https://pumpportal.io/api/token"
+
+def get_token_price(token_name: str):
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get('price', None)
-                else:
-                    print(f"[ERROR] Failed to fetch price: {response.status}")
-                    return None
+        response = requests.get(f"{API_BASE_URL}?search={token_name}")
+        data = response.json()
+        
+        if not data or 'tokens' not in data or len(data['tokens']) == 0:
+            return None
+
+        token = data['tokens'][0]
+        return {
+            "price": float(token.get("price", 0)),
+            "mc": float(token.get("marketCap", 0)),
+            "liquidity": float(token.get("liquidity", 0)),
+            "volume": float(token.get("volume", 0)),
+            "token_address": token.get("address")
+        }
+
     except Exception as e:
-        print(f"[EXCEPTION] Error fetching price: {e}")
+        print(f"[PumpPortal ERROR] Failed to fetch token data: {e}")
         return None
-
-# Fungsi tambahan untuk dapatkan info token (marketcap, LP, dll jika tersedia)
-async def get_token_info(token_name):
-    url = f"{BASE_URL}/tokens/{token_name}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    print(f"[ERROR] Token info fetch failed: {response.status}")
-                    return None
-    except Exception as e:
-        print(f"[EXCEPTION] Error fetching token info: {e}")
-        return None
-
-# Testing jika ingin jalankan langsung
-if __name__ == "__main__":
-    async def main():
-        token = "BONK"
-        price = await get_token_price(token)
-        print(f"Price for {token}: {price}")
-
-    asyncio.run(main())

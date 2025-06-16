@@ -1,6 +1,5 @@
 import asyncio
 import time
-from buyer import get_open_positions
 from seller import update_position_status, get_winrate
 from utils import send_message
 from pumpapi.client import get_token_data_by_name

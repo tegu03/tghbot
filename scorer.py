@@ -1,4 +1,4 @@
-# scorer.py (updated with min score filter and MC < 100k)
+# scorer.py (versi terbaru dengan kriteria baru & penyesuaian skor)
 
 def score_token(token_info):
     score = 0
@@ -12,13 +12,13 @@ def score_token(token_info):
     else:
         reasons.append('❌ Age not ideal')
 
-    # MarketCap (maks $100K)
+    # MarketCap (< $100K)
     mc = token_info.get('marketcap', 0)
-    if 1000 <= mc <= 100000:
+    if mc < 100000:
         score += 1
         reasons.append('✅ MC OK')
     else:
-        reasons.append('❌ MC not in range (< $100K)')
+        reasons.append('❌ MarketCap terlalu besar')
 
     # Liquidity (min $25K)
     lp = token_info.get('liquidity', 0)
@@ -47,9 +47,10 @@ def score_token(token_info):
     else:
         reasons.append('❌ LP is 0, cannot compute ratio')
 
-    # Renounced check
-    renounced = str(token_info.get('renounced', '')).lower()
-    if 'renounced' in renounced or '🔒' in renounced:
+    # Renounced check (boolean atau string)
+    renounced_raw = token_info.get('renounced', '')
+    renounced = str(renounced_raw).lower()
+    if 'renounced' in renounced or '🔒' in renounced or renounced == 'true':
         score += 1
         reasons.append('✅ Renounced')
     else:
@@ -63,7 +64,7 @@ def score_token(token_info):
     else:
         reasons.append('❌ No strong whale')
 
-    # Cek wallet mencurigakan (dump)
+    # Cek wallet mencurigakan (dump/sniper)
     if token_info.get('sniper_count', 0) >= 20 and token_info.get('sniper_percent', 0) > 20:
         reasons.append('⚠️ Warning: High sniper presence')
         score -= 1

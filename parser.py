@@ -1,67 +1,72 @@
-# parser.py
+# scorer.py
 
-import re
+def score_token(token_info):
+    score = 0
+    reasons = []
 
-def parse_number(value):
-    value = value.replace(",", "").strip().upper()
-    if value.endswith("K"):
-        return float(value[:-1]) * 1_000
-    elif value.endswith("M"):
-        return float(value[:-1]) * 1_000_000
-    elif value.endswith("B"):
-        return float(value[:-1]) * 1_000_000_000
+    # Age (30 detik – 20 menit)
+    age_seconds = token_info.get('age_seconds', 0)
+    if 30 <= age_seconds <= 1200:
+        score += 1
+        reasons.append('✅ Age OK')
     else:
-        return float(value)
+        reasons.append('❌ Age not ideal')
 
-def parse_age_to_seconds(age_str):
-    age_str = age_str.strip().lower()
-    if 'mo' in age_str:
-        return int(re.search(r'(\d+)', age_str).group(1)) * 30 * 24 * 3600
-    elif 'w' in age_str:
-        return int(re.search(r'(\d+)', age_str).group(1)) * 7 * 24 * 3600
-    elif 'd' in age_str:
-        return int(re.search(r'(\d+)', age_str).group(1)) * 24 * 3600
-    elif 'h' in age_str:
-        return int(re.search(r'(\d+)', age_str).group(1)) * 3600
-    elif 'm' in age_str:
-        return int(re.search(r'(\d+)', age_str).group(1)) * 60
+    # MarketCap (< $100K)
+    mc = token_info.get('marketcap', 0)
+    if 0 < mc < 100_000:
+        score += 1
+        reasons.append('✅ Marketcap OK')
     else:
-        return 0
+        reasons.append('❌ Marketcap too high')
 
-def extract_token_info(text):
-    try:
-        token_name_match = re.search(r"🔥\s+(.*?)\s+(New|Whale|Buy|Swap)", text, re.IGNORECASE)
-        token_name = token_name_match.group(1).strip() if token_name_match else "UNKNOWN"
+    # Liquidity (min $25K)
+    lp = token_info.get('liquidity', 0)
+    if lp >= 25000:
+        score += 1
+        reasons.append('✅ LP OK')
+    else:
+        reasons.append('❌ LP too low')
 
-        mc_match = re.search(r"MC:\s*\$([\d.,KMB]+)", text)
-        marketcap = parse_number(mc_match.group(1)) if mc_match else 0
+    # Volume 1h (> $10K)
+    vol = token_info.get('volume_1h', 0)
+    if vol > 10000:
+        score += 1
+        reasons.append('✅ Volume OK')
+    else:
+        reasons.append('❌ Volume too low')
 
-        liq_match = re.search(r"Liq:\s*\$([\d.,KMB]+)", text)
-        liquidity = parse_number(liq_match.group(1)) if liq_match else 0
+    # Ratio MC/LP (ideal 1.5–3)
+    if lp > 0:
+        ratio = mc / lp
+        if 1.5 <= ratio <= 3:
+            score += 1
+            reasons.append('✅ MC/LP ratio OK')
+        else:
+            reasons.append(f'❌ MC/LP ratio off ({ratio:.2f})')
+    else:
+        reasons.append('❌ LP is 0, cannot compute ratio')
 
-        vol_match = re.search(r"Vol:.*?\$([\d.,KMB]+)", text)
-        volume = parse_number(vol_match.group(1)) if vol_match else 0
+    # Renounced check
+    renounced_raw = token_info.get('renounced', '')
+    renounced = str(renounced_raw).lower()
+    if 'renounced' in renounced or '🔒' in renounced or renounced == 'true':
+        score += 1
+        reasons.append('✅ Renounced')
+    else:
+        reasons.append('❌ Not renounced')
 
-        age_match = re.search(r"Age:\s*([^\|]+)", text)
-        age_str = age_match.group(1).strip() if age_match else "0m"
-        age_seconds = parse_age_to_seconds(age_str)
+    # Whale check (> 100 SOL)
+    whale_sol = token_info.get('whale_wallet', 0)
+    if whale_sol >= 100:
+        score += 1
+        reasons.append(f'✅ Whale wallet {whale_sol} SOL')
+    else:
+        reasons.append('❌ No strong whale')
 
-        whale_match = re.search(r"Wallet:\s*([\d.]+)\s*SOL", text)
-        whale_wallet = float(whale_match.group(1)) if whale_match else 0
+    # Sniper warning
+    if token_info.get('sniper_count', 0) >= 20 and token_info.get('sniper_percent', 0) > 20:
+        reasons.append('⚠️ High sniper activity detected')
+        score -= 1
 
-        address_match = re.search(r"Wallet Address:.*?([A-Z0-9]{10,})", text)
-        contact_address = address_match.group(1) if address_match else ""
-
-        return {
-            "token_name": token_name,
-            "marketcap": marketcap,
-            "liquidity": liquidity,
-            "volume": volume,
-            "age_seconds": age_seconds,
-            "whale_wallet_sol": whale_wallet,
-            "contact_address": contact_address
-        }
-
-    except Exception as e:
-        print("[Parser Error]", e)
-        return None
+    return max(score, 0), reasons

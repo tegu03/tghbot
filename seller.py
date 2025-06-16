@@ -1,72 +1,61 @@
 import json
-import os
-from datetime import datetime
+import re
 
-PORTFOLIO_FILE = 'portfolio.json'
-WINRATE_FILE = 'winrate.json'
+# Parser untuk mengekstrak data token dari pesan teks
 
-# Struktur data sementara coin yang disimpan
-portfolio = []
-if os.path.exists(PORTFOLIO_FILE):
-    with open(PORTFOLIO_FILE, 'r') as f:
-        try:
-            portfolio = json.load(f)
-        except:
-            portfolio = []
+def extract_token_info(text):
+    try:
+        # Token Name
+        token_match = re.search(r'\$([A-Za-z0-9&$]+)', text)
+        token_name = token_match.group(1) if token_match else 'UNKNOWN'
 
-def save_portfolio():
-    with open(PORTFOLIO_FILE, 'w') as f:
-        json.dump(portfolio, f, indent=2)
+        # Age (detik)
+        age_match = re.search(r'Age: (\d+)([smh])', text)
+        if age_match:
+            value, unit = int(age_match.group(1)), age_match.group(2)
+            if unit == 's': age = value
+            elif unit == 'm': age = value * 60
+            elif unit == 'h': age = value * 3600
+        else:
+            age = 0
 
-def is_already_bought(token_name):
-    return any(entry['token_name'] == token_name for entry in portfolio)
+        # Wallet (SOL)
+        wallet_match = re.search(r'Wallet: ([\d\.]+) SOL', text)
+        wallet = float(wallet_match.group(1)) if wallet_match else 0
 
-def add_to_portfolio(token_name, mc, lp, volume, age, wallet, score, buy_price):
-    entry = {
-        'token_name': token_name,
-        'mc': mc,
-        'lp': lp,
-        'volume': volume,
-        'age': age,
-        'wallet': wallet,
-        'score': score,
-        'buy_price': buy_price,
-        'buy_time': datetime.utcnow().isoformat(),
-        'status': 'open'
-    }
-    portfolio.append(entry)
-    save_portfolio()
+        # Marketcap
+        mc_match = re.search(r'MC: \$([\d,\.Kk]+)', text)
+        mc = parse_dollar_value(mc_match.group(1)) if mc_match else 0
 
-def get_open_positions():
-    return [entry for entry in portfolio if entry['status'] == 'open']
+        # Liquidity
+        lp_match = re.search(r'Liq: \$([\d,\.Kk]+)', text)
+        lp = parse_dollar_value(lp_match.group(1)) if lp_match else 0
 
-def update_position_status(token_name, status, sell_price=None):
-    for entry in portfolio:
-        if entry['token_name'] == token_name and entry['status'] == 'open':
-            entry['status'] = status
-            if sell_price:
-                entry['sell_price'] = sell_price
-                entry['result'] = 'win' if sell_price >= entry['buy_price'] * 2 else 'loss'
-            break
-    save_portfolio()
-    update_winrate()
+        # Volume 1h
+        vol_match = re.search(r'Vol: \$([\d,\.Kk]+)', text)
+        volume = parse_dollar_value(vol_match.group(1)) if vol_match else 0
 
-def get_winrate():
-    closed = [e for e in portfolio if e['status'] != 'open']
-    if not closed:
-        return 0, 0, 0.0
-    wins = sum(1 for e in closed if e.get('result') == 'win')
-    total = len(closed)
-    winrate = round((wins / total) * 100, 2)
-    return wins, total, winrate
+        # Renounced
+        renounced = '🔒' in text or 'Renounced' in text
 
-def update_winrate():
-    wins, total, winrate = get_winrate()
-    data = {
-        'wins': wins,
-        'total': total,
-        'winrate': winrate,
-        'last_updated': datetime.utcnow().isoformat()
-    }
-    with open(WINRATE_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+        # Return dictionary
+        return {
+            'token_name': token_name,
+            'age': age,
+            'wallet': wallet,
+            'mc': mc,
+            'lp': lp,
+            'volume': volume,
+            'renounced': renounced
+        }
+    except Exception as e:
+        print(f"[ERROR] Parsing gagal: {e}")
+        return None
+
+def parse_dollar_value(val):
+    val = val.replace(",", "").replace("$", "").strip().upper()
+    if 'K' in val:
+        return float(val.replace('K', '')) * 1000
+    elif 'M' in val:
+        return float(val.replace('M', '')) * 1000000
+    return float(val)

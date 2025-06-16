@@ -25,14 +25,14 @@ async def send_message(message: str):
             print(f"[ERROR] Failed to send message: {e}")
 
 
-def load_json(filename):
+def load_json(filename, default=None):
     if not os.path.exists(filename):
-        return []
+        return default if default is not None else []
     with open(filename, 'r') as f:
         try:
             return json.load(f)
         except json.JSONDecodeError:
-            return []
+            return default if default is not None else []
 
 
 def save_json(filename, data):

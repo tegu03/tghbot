@@ -32,8 +32,8 @@ async def handle_new_message(event):
         print(f"[SKIP] ⛔ Skor {score} kurang dari {MIN_SCORE_TO_BUY}")
         return
 
-    if data['mc'] > MAX_MARKETCAP:
-        print(f"[SKIP] 💸 Marketcap terlalu besar: ${data['mc']}")
+    if data['marketcap'] > MAX_MARKETCAP:
+        print(f"[SKIP] 💸 Marketcap terlalu besar: ${data['marketcap']}")
         return
 
     if is_already_bought(data['token_name']):
@@ -41,31 +41,30 @@ async def handle_new_message(event):
         return
 
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
-        print("[SKIP] 📦 Posisi maksimum tercapai.")
+        print("[SKIP] 📆 Posisi maksimum tercapai.")
         return
 
-    # Simulasi harga beli awal
-    buy_price = data['mc'] / 1000
+    buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
         token_name=data['token_name'],
-        marketcap=data['mc'],
-        liquidity=data['lp'],
+        marketcap=data['marketcap'],
+        liquidity=data['liquidity'],
         volume=data['volume'],
         age=data['age'],
-        wallet=data['wallet'],
+        wallet=data['whale_wallet_sol'],
         score=score,
         buy_price=buy_price,
-        token_address=data['address']
+        token_address=data['contact_address']
     )
 
     await send_message(
         f"✅ Beli token: {data['token_name']}\n"
         f"Skor: {score}/7\n"
-        f"MC: ${data['mc']} | LP: ${data['lp']}\n"
+        f"MC: ${data['marketcap']} | LP: ${data['liquidity']}\n"
         f"Vol: ${data['volume']} | Usia: {data['age']} detik\n"
-        f"Whale: {data['wallet']} SOL\n"
-        f"🔗 https://solscan.io/token/{data['address']}\n"
+        f"Whale: {data['whale_wallet_sol']} SOL\n"
+        f"🔗 https://solscan.io/token/{data['contact_address']}\n"
         + "\n".join(reasons)
     )
 
@@ -100,7 +99,7 @@ async def monitor_status(event):
     msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr:.1f}%\n\n"
 
     if open_tokens:
-        msg += "📥 Dibeli:\n"
+        msg += "📅 Dibeli:\n"
         for t in open_tokens:
             msg += f"- {t['token_name']} @ ${t['buy_price']:.4f}\n"
 
@@ -129,8 +128,3 @@ async def main():
             asyncio.create_task(monitor_positions())
             await client.run_until_disconnected()
         except Exception as e:
-            print(f"[RESTART] 🔁 Bot restart karena error: {e}")
-            await asyncio.sleep(5)
-
-if __name__ == '__main__':
-    asyncio.run(main())

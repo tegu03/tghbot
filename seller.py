@@ -1,50 +1,31 @@
-# seller.py (versi dengan moonbag dan logging detail jual)
+# seller.py
 
-import time
 from utils import load_json, save_json
+from config import PORTFOLIO_FILE
 
-TOKEN_FILE = 'portfolio.json'
-HISTORY_FILE = 'history.json'
-
-# Status: OPEN, TP, SL, MOONBAG
-
-def get_open_positions():
-    return [x for x in load_json(TOKEN_FILE) if x['status'] == 'OPEN']
-
-def get_history():
-    return load_json(HISTORY_FILE)
-
-def save_portfolio(data):
-    save_json(TOKEN_FILE, data)
-
-def save_history(entry):
-    history = load_json(HISTORY_FILE)
-    history.append(entry)
-    save_json(HISTORY_FILE, history)
+portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
 
 def update_position_status(token_name, status, sell_price):
-    portfolio = load_json(TOKEN_FILE)
-    for entry in portfolio:
-        if entry['token_name'] == token_name and entry['status'] == 'OPEN':
-            entry['status'] = status
-            entry['sell_price'] = round(sell_price, 4)
-            entry['sell_time'] = int(time.time())
-            entry['profit_pct'] = round(((sell_price - entry['buy_price']) / entry['buy_price']) * 100, 2)
-
-            # Jika TP dan moonbag diaktifkan
-            if status == 'TP':
-                entry['moonbag'] = {
-                    'amount_percent': 20,
-                    'hold_start_time': int(time.time())
-                }
-
-            save_history(entry)
+    global portfolio
+    for token in portfolio:
+        if token['token_name'] == token_name and token['status'] == 'OPEN':
+            token['status'] = status
+            token['sell_price'] = sell_price
             break
-    save_portfolio(portfolio)
+    save_json(PORTFOLIO_FILE, portfolio)
 
 def get_winrate():
-    history = get_history()
-    total = len([x for x in history if x['status'] in ['TP', 'SL']])
-    win = len([x for x in history if x['status'] == 'TP'])
-    wr = round((win / total) * 100, 2) if total > 0 else 0
+    total = 0
+    win = 0
+    for token in portfolio:
+        if token['status'] in ['TP', 'SL']:
+            total += 1
+            if token['status'] == 'TP':
+                win += 1
+    if total == 0:
+        return 0, 0, 0.0
+    wr = round(win / total * 100, 2)
     return win, total, wr
+
+def get_closed_positions():
+    return [t for t in portfolio if t['status'] in ['TP', 'SL']]

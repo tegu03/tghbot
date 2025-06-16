@@ -5,7 +5,7 @@ from config import PORTFOLIO_FILE
 
 portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
 
-def add_to_portfolio(token_name, symbol, buy_price, marketcap, liquidity, volume, wallet, buy_time):
+def add_to_portfolio(token_name, symbol, buy_price, marketcap, liquidity, volume, wallet, age, buy_time):
     portfolio.append({
         "token_name": token_name,
         "symbol": symbol,
@@ -14,6 +14,7 @@ def add_to_portfolio(token_name, symbol, buy_price, marketcap, liquidity, volume
         "liquidity": liquidity,
         "volume": volume,
         "wallet": wallet,
+        "age": age,
         "buy_time": buy_time,
         "status": "OPEN"
     })
@@ -23,10 +24,7 @@ def get_open_positions():
     return [t for t in portfolio if t['status'] == 'OPEN']
 
 def is_already_bought(symbol):
-    for token in portfolio:
-        if token["symbol"] == symbol and token["status"] == "OPEN":
-            return True
-    return False
+    return any(token["symbol"] == symbol and token["status"] == "OPEN" for token in portfolio)
 
 def reset_portfolio():
     global portfolio

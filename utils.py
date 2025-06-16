@@ -6,15 +6,12 @@ from telethon import TelegramClient
 
 _client = None
 
-
 def set_client(client: TelegramClient):
     global _client
     _client = client
 
-
 def get_client():
     return _client
-
 
 async def send_message(message: str):
     if _client:
@@ -24,16 +21,14 @@ async def send_message(message: str):
         except Exception as e:
             print(f"[ERROR] Failed to send message: {e}")
 
-
 def load_json(filename, default=None):
     if not os.path.exists(filename):
-        return default if default is not None else []
+        return default
     with open(filename, 'r') as f:
         try:
             return json.load(f)
         except json.JSONDecodeError:
-            return default if default is not None else []
-
+            return default
 
 def save_json(filename, data):
     with open(filename, 'w') as f:

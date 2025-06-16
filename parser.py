@@ -1,72 +1,47 @@
-# scorer.py
+# parser.py
 
-def score_token(token_info):
-    score = 0
-    reasons = []
+import re
 
-    # Age (30 detik – 20 menit)
-    age_seconds = token_info.get('age_seconds', 0)
-    if 30 <= age_seconds <= 1200:
-        score += 1
-        reasons.append('✅ Age OK')
-    else:
-        reasons.append('❌ Age not ideal')
+def extract_token_info(text):
+    try:
+        # Cari nama token dan simbol dari baris dengan swap detail
+        name_match = re.search(r"🔥\s+(.*?)\s+Swap", text)
+        token_name = name_match.group(1).strip() if name_match else "UNKNOWN"
 
-    # MarketCap (< $100K)
-    mc = token_info.get('marketcap', 0)
-    if 0 < mc < 100_000:
-        score += 1
-        reasons.append('✅ Marketcap OK')
-    else:
-        reasons.append('❌ Marketcap too high')
+        # Marketcap
+        mc_match = re.search(r"MC:\s*\$(.*?)\s", text)
+        marketcap = float(mc_match.group(1).replace(",", "")) if mc_match else 0
 
-    # Liquidity (min $25K)
-    lp = token_info.get('liquidity', 0)
-    if lp >= 25000:
-        score += 1
-        reasons.append('✅ LP OK')
-    else:
-        reasons.append('❌ LP too low')
+        # Liquidity
+        liq_match = re.search(r"Liq:\s*\$(.*?)\n", text)
+        liquidity = float(liq_match.group(1).replace(",", "")) if liq_match else 0
 
-    # Volume 1h (> $10K)
-    vol = token_info.get('volume_1h', 0)
-    if vol > 10000:
-        score += 1
-        reasons.append('✅ Volume OK')
-    else:
-        reasons.append('❌ Volume too low')
+        # Volume 1h
+        vol_match = re.search(r"Vol:\s*1h:\s*\$(.*?)\n", text)
+        volume_1h = float(vol_match.group(1).replace(",", "")) if vol_match else 0
 
-    # Ratio MC/LP (ideal 1.5–3)
-    if lp > 0:
-        ratio = mc / lp
-        if 1.5 <= ratio <= 3:
-            score += 1
-            reasons.append('✅ MC/LP ratio OK')
-        else:
-            reasons.append(f'❌ MC/LP ratio off ({ratio:.2f})')
-    else:
-        reasons.append('❌ LP is 0, cannot compute ratio')
+        # Age
+        age_match = re.search(r"Age:\s*(.*?)\s*\|", text)
+        age = age_match.group(1).strip() if age_match else "UNKNOWN"
 
-    # Renounced check
-    renounced_raw = token_info.get('renounced', '')
-    renounced = str(renounced_raw).lower()
-    if 'renounced' in renounced or '🔒' in renounced or renounced == 'true':
-        score += 1
-        reasons.append('✅ Renounced')
-    else:
-        reasons.append('❌ Not renounced')
+        # Whale Wallet info
+        whale_match = re.search(r"Wallet Value:\s*(.*?)\s*SOL", text)
+        whale_wallet = float(whale_match.group(1)) if whale_match else 0
 
-    # Whale check (> 100 SOL)
-    whale_sol = token_info.get('whale_wallet', 0)
-    if whale_sol >= 100:
-        score += 1
-        reasons.append(f'✅ Whale wallet {whale_sol} SOL')
-    else:
-        reasons.append('❌ No strong whale')
+        # Contact Address (jika tersedia)
+        address_match = re.search(r"Wallet Address:.*?([A-Z0-9]{10,})", text)
+        contact_address = address_match.group(1) if address_match else ""
 
-    # Sniper warning
-    if token_info.get('sniper_count', 0) >= 20 and token_info.get('sniper_percent', 0) > 20:
-        reasons.append('⚠️ High sniper activity detected')
-        score -= 1
+        return {
+            "token_name": token_name,
+            "marketcap": marketcap,
+            "liquidity": liquidity,
+            "volume_1h": volume_1h,
+            "age": age,
+            "whale_wallet": whale_wallet,
+            "contact_address": contact_address
+        }
 
-    return max(score, 0), reasons
+    except Exception as e:
+        print("[Parser Error]", e)
+        return None

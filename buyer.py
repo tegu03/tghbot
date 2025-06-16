@@ -5,10 +5,11 @@ from config import PORTFOLIO_FILE
 
 portfolio = load_json(PORTFOLIO_FILE, default=[]) or []
 
-def add_to_portfolio(token_name, symbol, buy_price, marketcap, liquidity, volume, wallet, age, buy_time, score):
+def add_to_portfolio(token_name, symbol, buy_price, marketcap, liquidity, volume, wallet, age, buy_time, score, token_address):
     portfolio.append({
         "token_name": token_name,
         "symbol": symbol,
+        "token_address": token_address,
         "buy_price": buy_price,
         "marketcap": marketcap,
         "liquidity": liquidity,

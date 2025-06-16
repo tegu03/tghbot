@@ -2,10 +2,9 @@
 
 import json
 import os
-from telethon import TelegramClient
 
-DATA_DIR = 'data'
-os.makedirs(DATA_DIR, exist_ok=True)
+TOKEN_FILE = 'portfolio.json'
+HISTORY_FILE = 'history.json'
 
 client = None
 
@@ -13,21 +12,25 @@ def set_client(c):
     global client
     client = c
 
-def send_message(message):
-    from config import GROUP_ID
+async def send_message(text):
     if client:
-        return client.send_message(GROUP_ID, message)
+        from config import GROUP_ID
+        await client.send_message(GROUP_ID, text)
 
-def load_json(filepath, default=None):
-    try:
-        with open(filepath, 'r') as f:
+# JSON utils
+
+def load_json(filename):
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return default if default is not None else {}
+    return []
 
-def save_json(filepath, data):
-    with open(filepath, 'w') as f:
+def save_json(filename, data):
+    with open(filename, 'w') as f:
         json.dump(data, f, indent=2)
 
+# Link token Pump.fun
+
 def get_token_link(token_name):
-    return f"https://pump.fun/{token_name.replace('$', '')}"
+    slug = token_name.lower().replace(" ", "").replace("$", "")
+    return f"https://pump.fun/{slug}"

@@ -1,6 +1,7 @@
 # main.py
 
 import asyncio
+from datetime import datetime
 from telethon import TelegramClient, events
 from config import (
     API_ID, API_HASH, SESSION_NAME, CHANNELS, GROUP_ID,
@@ -51,21 +52,19 @@ async def handle_new_message(event):
     # Simulasi harga beli awal
     buy_price = data['marketcap'] / 1000
 
-    from datetime import datetime  # Tambahkan di bagian import
-
-add_to_portfolio(
-    token_name=data['token_name'],
-    token_address=data['symbol'],
-    symbol=data['symbol'],
-    buy_price=buy_price,
-    buy_time=datetime.now().isoformat(),
-    marketcap=data['marketcap'],
-    liquidity=data['liquidity'],
-    volume=data['volume'],
-    wallet=data['wallet'],
-    age=data['age'],
-    score=score
-)
+    add_to_portfolio(
+        token_name=data['token_name'],
+        token_address=data['symbol'],
+        symbol=data['symbol'],
+        buy_price=buy_price,
+        buy_time=datetime.now().isoformat(),
+        marketcap=data['marketcap'],
+        liquidity=data['liquidity'],
+        volume=data['volume'],
+        wallet=data['wallet'],
+        age=data['age'],
+        score=score
+    )
 
     await send_message(
         f"✅ Beli token: {data['token_name']}\n"

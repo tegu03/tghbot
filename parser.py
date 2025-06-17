@@ -3,7 +3,7 @@ from utils import parse_number, parse_age
 
 def extract_token_info(message: str):
     try:
-        token_name_match = re.search(r"🔥\s*(.+?)(?:\s*New Whale Buy|\s*Swap|\s*Launch|\s*Buy|🚀)?\s*\n", message)
+        token_name_match = re.search(r"🔥\s*\"?(.+?)\"?\s*(?:New Whale Buy|Swap|Launch|Buy|🚀)?\s*\n", message)
         token_name = token_name_match.group(1).strip() if token_name_match else "Unknown"
 
         mc_match = re.search(r"MC:\s*\$([0-9.,KMB]+)", message)
@@ -19,7 +19,7 @@ def extract_token_info(message: str):
         age_str = age_match.group(1).strip() if age_match else "Unknown"
         age_sec = parse_age(age_str)
 
-        wallet_match = re.search(r"Wallet.*?Value:\s*([0-9.]+)", message)
+        wallet_match = re.search(r"Wallet.*?([\d.]+)\s*SOL", message)
         whale_wallet_sol = float(wallet_match.group(1)) if wallet_match else 0
 
         sniper_match = re.search(r"Sniper:\s*(\d+)", message)
@@ -31,8 +31,18 @@ def extract_token_info(message: str):
         renounced_match = re.search(r"Renounced|🔒", message)
         renounced = 'renounced' if renounced_match else ''
 
+        # Default symbol
+        token_symbol = "UNKNOWN"
+
+        # 1. Cek pump.fun
         symbol_match = re.search(r"https://pump.fun/([a-zA-Z0-9]+)", message)
-        token_symbol = symbol_match.group(1).strip() if symbol_match else "UNKNOWN"
+        if symbol_match:
+            token_symbol = symbol_match.group(1).strip()
+        else:
+            # 2. Cek SolSniper Bot (Telegram)
+            sniper_link_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
+            if sniper_link_match:
+                token_symbol = sniper_link_match.group(1).strip()
 
         return {
             "token_name": token_name,

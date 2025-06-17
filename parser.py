@@ -35,25 +35,31 @@ def extract_token_info(message: str):
         sniper_percent_match = re.search(r"Sniper.*?(\d{1,3})%", message)
         sniper_percent = int(sniper_percent_match.group(1)) if sniper_percent_match else 0
 
-        # 8. Renounced (keamanan token)
+        # 8. Renounced
         renounced_match = re.search(r"Renounced|🔒", message)
         renounced = 'renounced' if renounced_match else ''
 
-        # 9. Token symbol / contact address
+        # 9. Symbol/token address
         token_symbol = "UNKNOWN"
 
-        # Cek urutan prioritas link: pump.fun → Soul_Sniper_Bot → dexscreener
+        # A. Cek pump.fun
         pump_match = re.search(r"https://pump.fun/([a-zA-Z0-9]+)", message)
         if pump_match:
             token_symbol = pump_match.group(1).strip()
         else:
+            # B. Cek SolSniper Bot
             sniper_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
             if sniper_match:
-                token_symbol = sniper_match.group(1).strip()
+                candidate = sniper_match.group(1).strip()
+                if len(candidate) >= 30:
+                    token_symbol = candidate
             else:
+                # C. Cek Dexscreener
                 dex_match = re.search(r"https://dexscreener\.com/solana/([a-zA-Z0-9]+)", message)
                 if dex_match:
-                    token_symbol = dex_match.group(1).strip()
+                    candidate = dex_match.group(1).strip()
+                    if len(candidate) >= 30:
+                        token_symbol = candidate
 
         return {
             "token_name": token_name,

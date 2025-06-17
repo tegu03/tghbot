@@ -109,13 +109,17 @@ async def monitor_status(event):
     if open_tokens:
         msg += "📥 Dibeli:\n"
         for t in open_tokens:
-            msg += f"- {t['token_name']} @ ${t['buy_price']:.4f}\n"
+            short_name = t['token_name'].split()[0].upper()
+            symbol = t['symbol']
+            msg += f"- {short_name} (`{symbol}`) Buy! @ ${t['buy_price']:.4f}\n"
 
     if closed_tokens:
         msg += "\n📤 Terjual:\n"
         for t in closed_tokens[-5:]:
+            short_name = t['token_name'].split()[0].upper()
+            symbol = t['symbol']
             status = "TP" if t["status"] == "TP" else "SL"
-            msg += f"- {t['token_name']} {status} @ ${t['sell_price']:.4f}\n"
+            msg += f"- {short_name} (`{symbol}`) {status} @ ${t['sell_price']:.4f}\n"
 
     await event.reply(msg)
 

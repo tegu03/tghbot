@@ -12,7 +12,7 @@ from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
 from seller import update_position_status, get_winrate, get_closed_positions
-from pumpportal import fetch_token_price_by_address
+from dexscreener import fetch_token_price_by_address
 from utils import send_message, set_client
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)

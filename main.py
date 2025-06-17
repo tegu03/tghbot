@@ -72,7 +72,8 @@ async def handle_new_message(event):
         f"MC: ${data['marketcap']} | LP: ${data['liquidity']}\n"
         f"Vol: ${data['volume']} | Usia: {data['age']}\n"
         f"Whale: {data['wallet']} SOL\n"
-        f"🔗 https://pump.fun/{data['symbol']}\n"
+        f"Token: `{data['symbol']}`\n"
+        f"🔗 https://dexscreener.com/solana/{data['symbol']}\n"
         + "\n".join(reasons)
     )
 

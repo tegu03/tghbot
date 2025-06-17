@@ -12,7 +12,7 @@ from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
 from seller import update_position_status, get_winrate, get_closed_positions
-from dexscreener import fetch_token_price_by_address
+from birdeye import fetch_token_price_by_address  # GANTI DARI dexscreener
 from utils import send_message, set_client
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
@@ -28,8 +28,9 @@ async def handle_new_message(event):
 
     text = event.raw_text
     data = extract_token_info(text)
-    if not data:
-        print("[SKIP] ❌ Parsing gagal.")
+
+    if not data or data['symbol'] == "UNKNOWN":
+        print("[SKIP] ❌ Parsing gagal atau symbol UNKNOWN.")
         return
 
     score, reasons = score_token(data)
@@ -73,7 +74,7 @@ async def handle_new_message(event):
         f"Vol: ${data['volume']} | Usia: {data['age']}\n"
         f"Whale: {data['wallet']} SOL\n"
         f"Token: `{data['symbol']}`\n"
-        f"🔗 https://dexscreener.com/solana/{data['symbol']}\n"
+        f"🔗 https://birdeye.so/token/{data['symbol']}?chain=solana\n"
         + "\n".join(reasons)
     )
 

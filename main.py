@@ -8,9 +8,13 @@ from config import (
 )
 from parser import extract_token_info
 from scorer import score_token
-from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
-from seller import update_position_status, get_winrate, get_closed_positions
-from gecko import fetch_token_price_by_address  # ✅ Ganti dari birdeye
+from buyer import (
+    is_already_bought, add_to_portfolio,
+    get_open_positions, reset_portfolio,
+    update_token_status
+)
+from seller import get_winrate, get_closed_positions
+from gecko import fetch_token_price_by_address
 from utils import send_message, set_client
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
@@ -41,8 +45,8 @@ async def handle_new_message(event):
         print(f"[SKIP] 💸 Marketcap terlalu besar: ${data['marketcap']}")
         return
 
-    if is_already_bought(data['token_name']):
-        print(f"[SKIP] 🔁 Token {data['token_name']} sudah dibeli.")
+    if is_already_bought(data['symbol']):
+        print(f"[SKIP] 🔁 Token {data['symbol']} sudah dibeli.")
         return
 
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
@@ -80,6 +84,9 @@ async def monitor_positions():
     while True:
         try:
             for entry in get_open_positions():
+                if entry.get("status") != "OPEN":
+                    continue
+
                 if len(entry['token_address']) < 30:
                     print(f"[SKIP] ❌ Symbol '{entry['token_address']}' tidak valid, lewati.")
                     continue
@@ -89,14 +96,15 @@ async def monitor_positions():
                     continue
 
                 buy_price = entry['buy_price']
+                symbol = entry['symbol']
                 token = entry['token_name']
 
                 if now_price >= buy_price * TP_MULTIPLIER:
                     sell_price = now_price * (1 - MOONBAG_RATIO)
-                    update_position_status(token, "TP", sell_price)
+                    update_token_status(symbol, "TP", sell_price)
                     await send_message(f"🎯 TP 80%: {token} @ ${sell_price:.4f} ✅\n20% disimpan sebagai moonbag.")
                 elif now_price <= buy_price * SL_MULTIPLIER:
-                    update_position_status(token, "SL", now_price)
+                    update_token_status(symbol, "SL", now_price)
                     await send_message(f"🛑 SL: {token} @ ${now_price:.4f} ❌")
         except Exception as e:
             print(f"[monitor_positions] ⚠️ Error: {e}")

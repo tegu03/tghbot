@@ -10,7 +10,7 @@ from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
 from seller import update_position_status, get_winrate, get_closed_positions
-from birdeye import fetch_token_price_by_address
+from gecko import fetch_token_price_by_address  # ✅ Ganti dari birdeye
 from utils import send_message, set_client
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
@@ -72,7 +72,7 @@ async def handle_new_message(event):
         f"Vol: ${data['volume']} | Usia: {data['age']}\n"
         f"Whale: {data['wallet']} SOL\n"
         f"Token: `{data['symbol']}`\n"
-        f"🔗 https://birdeye.so/token/{data['symbol']}?chain=solana\n"
+        f"🔗 https://www.geckoterminal.com/solana/tokens/{data['symbol']}\n"
         + "\n".join(reasons)
     )
 

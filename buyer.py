@@ -1,5 +1,3 @@
-# buyer.py
-
 from utils import load_json, save_json
 from config import PORTFOLIO_FILE
 
@@ -47,10 +45,28 @@ def add_to_portfolio(
 
 def get_open_positions():
     """Ambil semua token dengan status OPEN"""
-    return [t for t in portfolio if t["status"] == "OPEN"]
+    return [t for t in portfolio if t.get("status") == "OPEN"]
 
 def reset_portfolio():
     """Reset semua isi portfolio menjadi kosong"""
     global portfolio
     portfolio = []
     save_json(PORTFOLIO_FILE, portfolio)
+
+def remove_position(symbol: str):
+    """Hapus token berdasarkan symbol (jika ingin dihapus setelah SL/TP)"""
+    global portfolio
+    portfolio = [t for t in portfolio if t["symbol"] != symbol]
+    save_json(PORTFOLIO_FILE, portfolio)
+
+def update_token_status(symbol: str, status: str, sell_price: float = None):
+    """Update status dan harga jual token di portfolio"""
+    updated = False
+    for token in portfolio:
+        if token["symbol"] == symbol and token["status"] == "OPEN":
+            token["status"] = status
+            token["sell_price"] = sell_price
+            updated = True
+            break
+    if updated:
+        save_json(PORTFOLIO_FILE, portfolio)

@@ -29,8 +29,8 @@ def extract_token_info(message: str, raw_entities=None):
         whale_wallet_sol = float(wallet_match.group(1)) if wallet_match else 0
 
         # 7. Sniper info
-        sniper_match = re.search(r"Sniper:\s*(\d+)", message)
-        sniper_count = int(sniper_match.group(1)) if sniper_match else 0
+        sniper_count_match = re.search(r"Sniper:\s*(\d+)", message)
+        sniper_count = int(sniper_count_match.group(1)) if sniper_count_match else 0
 
         sniper_percent_match = re.search(r"Sniper.*?(\d{1,3})%", message)
         sniper_percent = int(sniper_percent_match.group(1)) if sniper_percent_match else 0
@@ -48,9 +48,9 @@ def extract_token_info(message: str, raw_entities=None):
             token_symbol = pump_match.group(1).strip()
         else:
             # B. Soul Sniper bot
-            sniper_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
-            if sniper_match:
-                candidate = sniper_match.group(1).strip()
+            sniper_bot_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
+            if sniper_bot_match:
+                candidate = sniper_bot_match.group(1).strip()
                 if len(candidate) >= 30:
                     token_symbol = candidate
             else:
@@ -61,7 +61,7 @@ def extract_token_info(message: str, raw_entities=None):
                     if len(candidate) >= 30:
                         token_symbol = candidate
                 else:
-                    # D. Geckoterminal or other token link inside hyperlink (chart)
+                    # D. Geckoterminal or other hyperlink (CHART) parser
                     if raw_entities:
                         for entity in raw_entities:
                             if hasattr(entity, 'url') and entity.url:
@@ -69,6 +69,11 @@ def extract_token_info(message: str, raw_entities=None):
                                 if match:
                                     token_symbol = match.group(1)
                                     break
+
+        # Final validasi symbol
+        if len(token_symbol) < 30:
+            print("[Parser] ❗ Token symbol not found or invalid.")
+            token_symbol = "UNKNOWN"
 
         return {
             "token_name": token_name,

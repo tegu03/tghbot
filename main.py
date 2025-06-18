@@ -1,5 +1,3 @@
-# main.py
-
 import asyncio
 from datetime import datetime
 from telethon import TelegramClient, events
@@ -12,7 +10,7 @@ from parser import extract_token_info
 from scorer import score_token
 from buyer import is_already_bought, add_to_portfolio, get_open_positions, reset_portfolio
 from seller import update_position_status, get_winrate, get_closed_positions
-from birdeye import fetch_token_price_by_address  # GANTI DARI dexscreener
+from birdeye import fetch_token_price_by_address
 from utils import send_message, set_client
 
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
@@ -27,7 +25,8 @@ async def handle_new_message(event):
         return
 
     text = event.raw_text
-    data = extract_token_info(text)
+    entities = event.message.entities if hasattr(event.message, 'entities') else None
+    data = extract_token_info(text, raw_entities=entities)
 
     if not data or data['symbol'] == "UNKNOWN":
         print("[SKIP] ❌ Parsing gagal atau symbol UNKNOWN.")
@@ -50,7 +49,6 @@ async def handle_new_message(event):
         print("[SKIP] 📦 Posisi maksimum tercapai.")
         return
 
-    # Simulasi harga beli awal
     buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
@@ -82,6 +80,10 @@ async def monitor_positions():
     while True:
         try:
             for entry in get_open_positions():
+                if len(entry['token_address']) < 30:
+                    print(f"[SKIP] ❌ Symbol '{entry['token_address']}' tidak valid, lewati.")
+                    continue
+
                 now_price = await fetch_token_price_by_address(entry['token_address'])
                 if not now_price:
                     continue

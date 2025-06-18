@@ -1,7 +1,7 @@
 import re
 from utils import parse_number, parse_age
 
-def extract_token_info(message: str):
+def extract_token_info(message: str, raw_entities=None):
     try:
         # 1. Nama token dari baris pertama
         token_name_match = re.search(r"🔥\s*\"?(.+?)\"?\s*(?:New Whale Buy|Swap|Launch|Buy|🚀)?\s*\n", message)
@@ -42,24 +42,33 @@ def extract_token_info(message: str):
         # 9. Symbol/token address
         token_symbol = "UNKNOWN"
 
-        # A. Cek pump.fun
+        # A. pump.fun
         pump_match = re.search(r"https://pump.fun/([a-zA-Z0-9]+)", message)
         if pump_match:
             token_symbol = pump_match.group(1).strip()
         else:
-            # B. Cek SolSniper Bot
+            # B. Soul Sniper bot
             sniper_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
             if sniper_match:
                 candidate = sniper_match.group(1).strip()
                 if len(candidate) >= 30:
                     token_symbol = candidate
             else:
-                # C. Cek Dexscreener
+                # C. Dexscreener
                 dex_match = re.search(r"https://dexscreener\.com/solana/([a-zA-Z0-9]+)", message)
                 if dex_match:
                     candidate = dex_match.group(1).strip()
                     if len(candidate) >= 30:
                         token_symbol = candidate
+                else:
+                    # D. Geckoterminal or other token link inside hyperlink (chart)
+                    if raw_entities:
+                        for entity in raw_entities:
+                            if hasattr(entity, 'url') and entity.url:
+                                match = re.search(r'/tokens/([a-zA-Z0-9]{30,})', entity.url)
+                                if match:
+                                    token_symbol = match.group(1)
+                                    break
 
         return {
             "token_name": token_name,

@@ -29,3 +29,5 @@ PUMPPORTAL_API_KEY = os.getenv("PUMPPORTAL_API_KEY")
 
 # File path
 PORTFOLIO_FILE = "portfolio.json"
+STATUS_FILE = "status.json"
+

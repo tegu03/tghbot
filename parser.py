@@ -46,29 +46,29 @@ def extract_token_info(message: str, raw_entities=None):
         pump_match = re.search(r"https://pump.fun/([a-zA-Z0-9]+)", message)
         if pump_match:
             token_symbol = pump_match.group(1).strip()
-        else:
-            # B. Soul Sniper bot
+
+        # B. Soul Sniper bot
+        elif re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message):
             sniper_bot_match = re.search(r"https://t\.me/Soul_Sniper_Bot\?start=\d+_([a-zA-Z0-9]+)", message)
-            if sniper_bot_match:
-                candidate = sniper_bot_match.group(1).strip()
-                if len(candidate) >= 30:
-                    token_symbol = candidate
-            else:
-                # C. Dexscreener
-                dex_match = re.search(r"https://dexscreener\.com/solana/([a-zA-Z0-9]+)", message)
-                if dex_match:
-                    candidate = dex_match.group(1).strip()
-                    if len(candidate) >= 30:
-                        token_symbol = candidate
-                else:
-                    # D. Geckoterminal or other hyperlink (CHART) parser
-                    if raw_entities:
-                        for entity in raw_entities:
-                            if hasattr(entity, 'url') and entity.url:
-                                match = re.search(r'/tokens/([a-zA-Z0-9]{30,})', entity.url)
-                                if match:
-                                    token_symbol = match.group(1)
-                                    break
+            candidate = sniper_bot_match.group(1).strip()
+            if len(candidate) >= 30:
+                token_symbol = candidate
+
+        # C. Dexscreener
+        elif re.search(r"https://dexscreener\.com/solana/([a-zA-Z0-9]+)", message):
+            dex_match = re.search(r"https://dexscreener\.com/solana/([a-zA-Z0-9]+)", message)
+            candidate = dex_match.group(1).strip()
+            if len(candidate) >= 30:
+                token_symbol = candidate
+
+        # D. Geckoterminal or CHART via hyperlink entity
+        elif raw_entities:
+            for entity in raw_entities:
+                if hasattr(entity, 'url') and entity.url:
+                    match = re.search(r'/tokens/([a-zA-Z0-9]{30,})', entity.url)
+                    if match:
+                        token_symbol = match.group(1)
+                        break
 
         # Final validasi symbol
         if len(token_symbol) < 30:

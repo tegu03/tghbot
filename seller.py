@@ -1,5 +1,3 @@
-# seller.py
-
 from utils import load_json, save_json
 from config import PORTFOLIO_FILE, MOONBAG_RATIO
 
@@ -21,6 +19,7 @@ def update_position_status(token_name, status, sell_price):
                 token['sell_price'] = round(sell_price, 4)
             break
     save_json(PORTFOLIO_FILE, portfolio)
+    write_status_json()  # ⬅️ simpan ke status.json setiap update
 
 def get_winrate():
     total = 0
@@ -37,3 +36,16 @@ def get_winrate():
 
 def get_closed_positions():
     return [t for t in portfolio if t['status'] in ['TP', 'SL']]
+
+def write_status_json():
+    """Simpan status winrate dan list posisi ke status.json"""
+    from config import STATUS_FILE
+    win, total, wr = get_winrate()
+    status_data = {
+        "win": win,
+        "total": total,
+        "winrate_percent": wr,
+        "open_positions": [t for t in portfolio if t.get("status") == "OPEN"],
+        "closed_positions": [t for t in portfolio if t.get("status") in ("TP", "SL", "HOLD")]
+    }
+    save_json(STATUS_FILE, status_data)

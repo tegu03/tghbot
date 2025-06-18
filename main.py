@@ -53,6 +53,7 @@ async def handle_new_message(event):
         print("[SKIP] 📦 Posisi maksimum tercapai.")
         return
 
+    # Estimasi harga beli (simulasi dari MC)
     buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
@@ -130,7 +131,7 @@ async def monitor_status(event):
         for t in closed_tokens[-5:]:
             short_name = t['token_name'].split()[0].upper()
             symbol = t['symbol']
-            status = "TP" if t["status"] == "TP" else "SL"
+            status = t["status"]
             msg += f"- {short_name} (`{symbol}`) {status} @ ${t['sell_price']:.4f}\n"
 
     await event.reply(msg)

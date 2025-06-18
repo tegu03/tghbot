@@ -19,7 +19,7 @@ MIN_SCORE_TO_BUY = int(os.getenv("MIN_SCORE_TO_BUY", 5))           # min skor un
 MAX_MARKETCAP = int(os.getenv("MAX_MARKETCAP", 100_000))           # max marketcap ($)
 
 TP_MULTIPLIER = float(os.getenv("TP_MULTIPLIER", 2.0))             # contoh: 2.0 = 100% profit
-SL_MULTIPLIER = float(os.getenv("SL_MULTIPLIER", 0.75))            # contoh: 0.75 = cut loss 25%
+SL_MULTIPLIER = float(os.getenv("SL_MULTIPLIER", 0.25))            # contoh: 0.75 = cut loss 25%
 MOONBAG_RATIO = float(os.getenv("MOONBAG_RATIO", 0.2))             # contoh: 20% sisa disimpan
 
 # ========== External API ==========

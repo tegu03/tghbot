@@ -1,0 +1,27 @@
+{
+  "win": 2,
+  "total": 4,
+  "winrate_percent": 50.0,
+  "open_positions": [
+    {
+      "token_name": "Mutated Pepe",
+      "symbol": "xxxx...",
+      "buy_price": 0.0001,
+      "status": "OPEN"
+    }
+  ],
+  "closed_positions": [
+    {
+      "token_name": "KISS",
+      "symbol": "abcd...",
+      "sell_price": 0.0000,
+      "status": "SL"
+    },
+    {
+      "token_name": "DOES",
+      "symbol": "abcd...",
+      "sell_price": 0.0000,
+      "status": "SL"
+    }
+  ]
+}

@@ -50,10 +50,9 @@ async def handle_new_message(event):
         return
 
     if len(get_open_positions()) >= MAX_OPEN_POSITIONS:
-        print("[SKIP] 📦 Posisi maksimum tercapai.")
+        print("[SKIP] 📆 Posisi maksimum tercapai.")
         return
 
-    # Estimasi harga beli (simulasi dari MC)
     buy_price = data['marketcap'] / 1000
 
     add_to_portfolio(
@@ -120,7 +119,7 @@ async def monitor_status(event):
     msg = f"📊 Monitoring\nOpen: {len(open_tokens)} token\nWinrate: {win}/{total} = {wr:.1f}%\n\n"
 
     if open_tokens:
-        msg += "📥 Dibeli:\n"
+        msg += "📅 Dibeli:\n"
         for t in open_tokens:
             short_name = t['token_name'].split()[0].upper()
             symbol = t['symbol']

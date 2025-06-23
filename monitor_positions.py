@@ -29,3 +29,4 @@ async def monitor_positions():
                 await send_message(f"🛑 SL: {token_name} ❌ (${now_price:.2f})")
 
         await asyncio.sleep(60)
+print(f"[Price Check] {entry['token_name']} => ${now_price}")
